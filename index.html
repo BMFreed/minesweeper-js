@@ -4,11 +4,23 @@
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="css/styles.css">
+        <link rel="stylesheet" href="css/styles.css" />
         <title>Minesweeper JS</title>
     </head>
     <body>
-        <div class="board"></div>
+        <h1>Сапёр</h1>
+        <div class="difficulty-wrapper">
+            <h2>Выберите сложность:</h2>
+            <ul class="difficulty-select">
+                <li><button id="easy">Легко</button></li>
+                <li><button id="medium">Средне</button></li>
+                <li><button id="hard">Тяжело</button></li>
+            </ul>
+        </div>
+        <div class="game-wrapper hidden">
+            <div class="image"><img src="img/default.png" alt="" class="face" /></div>
+            <div class="board"></div>
+        </div>
     </body>
     <script src="js/main.js" type="module"></script>
 </html>

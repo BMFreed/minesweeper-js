@@ -5,6 +5,8 @@ export class Board {
     #boardSize;
     #numberOfMines;
     #tiles = [];
+    #remaining;
+    face;
     #config = {
         easy: {
             boardSize: 8,
@@ -19,12 +21,19 @@ export class Board {
             numberOfMines: 60,
         },
     };
+    outcomes = {
+        win: false,
+        lose: false,
+    };
     constructor(difficulty) {
         this.configureBoard(difficulty);
         this.initiateBoard();
         this.populateBoard();
         this.plantMines();
-        this.numberTiles();
+        this.renderTileNumbers();
+        this.startGame();
+        this.revealTiles();
+        this.handleFace();
     }
 
     get conditions() {
@@ -67,13 +76,12 @@ export class Board {
             if (!minePositions.includes(position)) {
                 minePositions.push(position);
             }
-        } while (minePositions.length < 8);
+        } while (minePositions.length < this.#numberOfMines);
         return minePositions;
     }
 
     plantMines() {
         const minePositions = this.getMinePositions();
-        console.log(minePositions);
         for (let i = 0; i < this.#tiles.length; i++) {
             for (let j = 0; j < minePositions.length; j++) {
                 if (this.#tiles[i].id === minePositions[j]) {
@@ -83,5 +91,180 @@ export class Board {
         }
     }
 
-    numberTiles() {}
+    scanNeighbourTiles(i) {
+        const neighbourTiles = [];
+        const neighbourTileIds = [
+            i + 1,
+            i - 1,
+            i + this.#boardSize,
+            i - this.#boardSize,
+            i + 1 + this.#boardSize,
+            i + 1 - this.#boardSize,
+            i - 1 + this.#boardSize,
+            i - 1 - this.#boardSize,
+        ];
+
+        //Крайняя левая плитка
+        if (i % this.#boardSize === 0) {
+            delete neighbourTileIds[1];
+            delete neighbourTileIds[6];
+            delete neighbourTileIds[7];
+        }
+
+        //Крайняя правая плитка
+        if ((i + 1) % this.#boardSize === 0) {
+            delete neighbourTileIds[0];
+            delete neighbourTileIds[4];
+            delete neighbourTileIds[5];
+        }
+
+        //Крайняя верхняя плитка
+        if (i < this.#boardSize) {
+            delete neighbourTileIds[3];
+            delete neighbourTileIds[5];
+            delete neighbourTileIds[7];
+        }
+
+        //Крайняя нижняя плитка
+        if (i > this.getNumberOfTiles() - this.#boardSize) {
+            delete neighbourTileIds[2];
+            delete neighbourTileIds[4];
+            delete neighbourTileIds[6];
+        }
+
+        for (let i = 0; i < neighbourTileIds.length; i++) {
+            if (this.#tiles[neighbourTileIds[i]]) {
+                neighbourTiles.push(this.#tiles[neighbourTileIds[i]]);
+            }
+        }
+        return neighbourTiles;
+    }
+
+    renderTileNumbers() {
+        for (let i = 0; i < this.#tiles.length; i++) {
+            if (this.#tiles[i].states.mined) {
+                const neighbourTiles = this.scanNeighbourTiles(i);
+                for (let n = 0; n < neighbourTiles.length; n++) {
+                    neighbourTiles[n].assignNumber();
+                }
+            }
+        }
+    }
+
+    startGame() {
+        this.#board.addEventListener("click", (event) => {
+            if (event.target.classList.contains("tile")) {
+                this.#tiles[event.target.id].click();
+                this.revealTiles(
+                    event.target,
+                    event.target.id,
+                    event.target.innerText,
+                    this.#tiles[event.target.id].states.mined,
+                    this.#tiles[event.target.id].states.clicked
+                );
+            }
+            this.loseHandler(event.target.dataset.mined, event.target.dataset.clicked);
+            this.winHandler();
+            this.handleFace();
+        });
+        this.#board.addEventListener("contextmenu", (event) => {
+            if (event.target.classList.contains("tile")) {
+                event.preventDefault();
+                this.#tiles[event.target.id].flag();
+            }
+        });
+    }
+
+    revealTiles(tile, id, numbered, mined, clicked) {
+        if (tile && !numbered && !mined && clicked) {
+            let clickableTiles = [];
+            const neighbourTiles = this.scanNeighbourTiles(parseInt(id));
+            this.revealNearbyNumbers(neighbourTiles);
+            clickableTiles = this.getClickableTiles(neighbourTiles);
+            for (let i = 0; i < clickableTiles.length; i++) {
+                if (clickableTiles.length > 0) {
+                    clickableTiles[i].click();
+                    this.revealTiles(
+                        clickableTiles[i],
+                        clickableTiles[i].id,
+                        clickableTiles[i].innerText,
+                        clickableTiles[i].states.mined,
+                        clickableTiles[i].states.clicked
+                    );
+                }
+            }
+        }
+    }
+
+    revealNearbyNumbers(neighbourTiles) {
+        for (let i = 0; i < neighbourTiles.length; i++) {
+            if (neighbourTiles[i].number > 0) {
+                neighbourTiles[i].click();
+            }
+        }
+    }
+
+    getClickableTiles(neighbourTiles) {
+        const clickableTiles = [];
+        for (let i = 0; i < neighbourTiles.length; i++) {
+            if (
+                neighbourTiles[i] &&
+                !neighbourTiles[i].states.mined &&
+                !neighbourTiles[i].states.clicked &&
+                neighbourTiles[i].number === 0
+            ) {
+                clickableTiles.push(neighbourTiles[i]);
+            }
+        }
+        return clickableTiles;
+    }
+
+    audio(name) {
+        let audio = new Audio();
+        audio.src = `audio/${name}.mp3`;
+        audio.play();
+    }
+
+    handleFace() {
+        this.face = document.querySelector(".face");
+        const clickableTiles = this.getNumberOfTiles() - this.#numberOfMines;
+        const winRatio = this.#remaining / clickableTiles;
+        if (winRatio < 0.5 && winRatio > 0) {
+            this.face.src = "img/almost_win.png";
+        }
+        if (this.outcomes.win) {
+            this.face.src = "img/win.png";
+        }
+        if (this.outcomes.lose) {
+            this.face.src = "img/lose.png";
+        }
+    }
+
+    winHandler() {
+        this.#remaining = 0;
+        for (let i = 0; i < this.#tiles.length; i++) {
+            if (!this.#tiles[i].states.clicked && !this.#tiles[i].states.mined) {
+                this.#remaining++;
+            }
+        }
+        if (this.#remaining === 0) {
+            this.outcomes.win = true;
+            this.audio("win");
+            setTimeout(function () {
+                alert("Вы победили!");
+                window.location.reload();
+            }, 100);
+        }
+    }
+
+    loseHandler(mined, clicked) {
+        if (mined && clicked) {
+            this.outcomes.lose = true;
+            this.audio("lose");
+            setTimeout(function () {
+                alert("П О Т Р А Ч Е Н О");
+                window.location.reload();
+            }, 100);
+        }
+    }
 }
