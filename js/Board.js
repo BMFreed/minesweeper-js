@@ -253,7 +253,7 @@ export class Board {
             setTimeout(function () {
                 alert("Вы победили!");
                 window.location.reload();
-            }, 100);
+            }, 300);
         }
     }
 
@@ -264,7 +264,7 @@ export class Board {
             setTimeout(function () {
                 alert("П О Т Р А Ч Е Н О");
                 window.location.reload();
-            }, 100);
+            }, 300);
         }
     }
 }
