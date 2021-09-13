@@ -79,14 +79,14 @@ button {
 
 .board > [data-mined="mined"] {
     background-color: green;
-    background-image: url("/img/bomb.png");
+    background-image: url("img/bomb.png");
     background-size: 0;
     background-repeat: no-repeat;
     background-position: center;
 }
 
 .board > [data-mined="mined"][data-clicked="clicked"] {
-    background-image: url("/img/bomb.png");
+    background-image: url("img/bomb.png");
     background-size: 70%;
     background-repeat: no-repeat;
     background-position: center;
