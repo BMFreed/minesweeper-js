@@ -65,10 +65,6 @@ button {
         0 1px 5px 0 rgb(0 0 0 / 12%);
 }
 
-.board > [data-mined="mined"] {
-    background-color: green;
-}
-
 .board > [data-clicked="clicked"] {
     background-color: #fafafa;
     font-size: inherit;
@@ -77,6 +73,14 @@ button {
 .board > [data-flagged="flagged"] {
     background-image: url("/img/flag.png");
     background-size: 70%;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.board > [data-mined="mined"] {
+    background-color: green;
+    background-image: url("/img/bomb.png");
+    background-size: 0;
     background-repeat: no-repeat;
     background-position: center;
 }
