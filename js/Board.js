@@ -21,19 +21,16 @@ export class Board {
             numberOfMines: 60,
         },
     };
-    outcomes = {
-        win: false,
-        lose: false,
-    };
+    outcome = "ongoing";
     constructor(difficulty) {
-        this.configureBoard(difficulty);
-        this.initiateBoard();
-        this.populateBoard();
-        this.plantMines();
-        this.renderTileNumbers();
-        this.startGame();
-        this.revealTiles();
-        this.handleFace();
+        this.#configureBoard(difficulty);
+        this.#initiateBoard();
+        this.#populateBoard();
+        this.#plantMines();
+        this.#renderTileNumbers();
+        this.#startGame();
+        this.#revealTiles();
+        this.#handleFace();
     }
 
     get conditions() {
@@ -42,12 +39,12 @@ export class Board {
         } тайлов и будет содержать в себе ${this.#numberOfMines} мин`;
     }
 
-    initiateBoard() {
+    #initiateBoard() {
         this.#board = document.querySelector(".board");
         this.#board.style.setProperty("--size", this.#boardSize);
     }
 
-    configureBoard(difficulty) {
+    #configureBoard(difficulty) {
         const level = this.#config[difficulty];
         this.#boardSize = level.boardSize;
         this.#numberOfMines = level.numberOfMines;
@@ -57,7 +54,7 @@ export class Board {
         return Math.pow(this.#boardSize, 2);
     }
 
-    populateBoard() {
+    #populateBoard() {
         for (let i = 0; i < this.getNumberOfTiles(); i++) {
             const tile = new Tile(i);
             this.#tiles.push(tile);
@@ -80,7 +77,7 @@ export class Board {
         return minePositions;
     }
 
-    plantMines() {
+    #plantMines() {
         const minePositions = this.getMinePositions();
         for (let i = 0; i < this.#tiles.length; i++) {
             for (let j = 0; j < minePositions.length; j++) {
@@ -140,9 +137,9 @@ export class Board {
         return neighbourTiles;
     }
 
-    renderTileNumbers() {
+    #renderTileNumbers() {
         for (let i = 0; i < this.#tiles.length; i++) {
-            if (this.#tiles[i].states.mined) {
+            if (this.#tiles[i].isMined()) {
                 const neighbourTiles = this.scanNeighbourTiles(i);
                 for (let n = 0; n < neighbourTiles.length; n++) {
                     neighbourTiles[n].assignNumber();
@@ -151,21 +148,21 @@ export class Board {
         }
     }
 
-    startGame() {
+    #startGame() {
         this.#board.addEventListener("click", (event) => {
             if (event.target.classList.contains("tile")) {
                 this.#tiles[event.target.id].click();
-                this.revealTiles(
+                this.#revealTiles(
                     event.target,
                     event.target.id,
                     event.target.innerText,
-                    this.#tiles[event.target.id].states.mined,
-                    this.#tiles[event.target.id].states.clicked
+                    this.#tiles[event.target.id].isMined(),
+                    this.#tiles[event.target.id].isClicked()
                 );
             }
-            this.loseHandler(event.target.dataset.mined, event.target.dataset.clicked);
-            this.winHandler();
-            this.handleFace();
+            this.#loseHandler(event.target.dataset.mined, event.target.dataset.clicked);
+            this.#winHandler();
+            this.#handleFace();
         });
         this.#board.addEventListener("contextmenu", (event) => {
             if (event.target.classList.contains("tile")) {
@@ -175,7 +172,7 @@ export class Board {
         });
     }
 
-    revealTiles(tile, id, numbered, mined, clicked) {
+    #revealTiles(tile, id, numbered, mined, clicked) {
         if (tile && !numbered && !mined && clicked) {
             let clickableTiles = [];
             const neighbourTiles = this.scanNeighbourTiles(parseInt(id));
@@ -184,12 +181,12 @@ export class Board {
             for (let i = 0; i < clickableTiles.length; i++) {
                 if (clickableTiles.length > 0) {
                     clickableTiles[i].click();
-                    this.revealTiles(
+                    this.#revealTiles(
                         clickableTiles[i],
                         clickableTiles[i].id,
                         clickableTiles[i].innerText,
-                        clickableTiles[i].states.mined,
-                        clickableTiles[i].states.clicked
+                        clickableTiles[i].isMined(),
+                        clickableTiles[i].isClicked()
                     );
                 }
             }
@@ -209,8 +206,8 @@ export class Board {
         for (let i = 0; i < neighbourTiles.length; i++) {
             if (
                 neighbourTiles[i] &&
-                !neighbourTiles[i].states.mined &&
-                !neighbourTiles[i].states.clicked &&
+                !neighbourTiles[i].isMined() &&
+                !neighbourTiles[i].isClicked() &&
                 neighbourTiles[i].number === 0
             ) {
                 clickableTiles.push(neighbourTiles[i]);
@@ -219,37 +216,37 @@ export class Board {
         return clickableTiles;
     }
 
-    audio(name) {
+    #audio(name) {
         let audio = new Audio();
         audio.src = `audio/${name}.mp3`;
         audio.play();
     }
 
-    handleFace() {
+    #handleFace() {
         this.face = document.querySelector(".face");
         const clickableTiles = this.getNumberOfTiles() - this.#numberOfMines;
         const winRatio = this.#remaining / clickableTiles;
         if (winRatio < 0.5 && winRatio > 0) {
             this.face.src = "img/almost_win.png";
         }
-        if (this.outcomes.win) {
+        if (this.outcome === "win") {
             this.face.src = "img/win.png";
         }
-        if (this.outcomes.lose) {
+        if (this.outcome === "lose") {
             this.face.src = "img/lose.png";
         }
     }
 
-    winHandler() {
+    #winHandler() {
         this.#remaining = 0;
         for (let i = 0; i < this.#tiles.length; i++) {
-            if (!this.#tiles[i].states.clicked && !this.#tiles[i].states.mined) {
+            if (this.#tiles[i].isNeedsToBeOpened()) {
                 this.#remaining++;
             }
         }
         if (this.#remaining === 0) {
-            this.outcomes.win = true;
-            this.audio("win");
+            this.outcome = "win";
+            this.#audio("win");
             setTimeout(function () {
                 alert("Вы победили!");
                 window.location.reload();
@@ -257,10 +254,10 @@ export class Board {
         }
     }
 
-    loseHandler(mined, clicked) {
+    #loseHandler(mined, clicked) {
         if (mined && clicked) {
-            this.outcomes.lose = true;
-            this.audio("lose");
+            this.outcome = "lose";
+            this.#audio("lose");
             setTimeout(function () {
                 alert("П О Т Р А Ч Е Н О");
                 window.location.reload();
